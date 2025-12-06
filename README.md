@@ -426,12 +426,6 @@ This tool is for **educational and research purposes only**.
 
 This project is provided as-is for educational purposes.
 
-## Acknowledgments
-
-Built with:
-- Claude Code
-- Solscan Public API
-- Python Requests library
 
 ## Version History
 
@@ -442,16 +436,6 @@ Built with:
   - Free API integration
   - Markdown report generation
 
-## Roadmap
-
-Potential future enhancements:
-- Multi-chain support (ETH, BSC, Polygon)
-- Enhanced contract analysis
-- Team background checks
-- Historical scam pattern database
-- Real-time monitoring alerts
-- Integration with more DEX APIs
-- Web interface
 
 ---
 
