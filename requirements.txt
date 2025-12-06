@@ -1,0 +1,8 @@
+# Solana Rug Pull Detector - Python Dependencies
+
+# HTTP requests for API calls
+requests>=2.31.0
+
+# Optional: For enhanced features (not required for basic functionality)
+# solana>=0.30.0  # Official Solana Python SDK
+# solders>=0.18.0  # Solana types and utilities
