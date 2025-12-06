@@ -214,8 +214,11 @@ class SolanaRugPullDetector:
             "holder_details": []
         }
 
-        if rugcheck_data and rugcheck_data.get("topHolders"):
+        if rugcheck_data and rugcheck_data.get("topHolders") is not None:
             holders = rugcheck_data["topHolders"]
+            if not holders:  # Empty list
+                self.warnings.append("⚠️ Holder distribution data not available")
+                return result
             result["total_holders"] = len(holders)
 
             if holders:
@@ -404,29 +407,39 @@ class SolanaRugPullDetector:
                 else:
                     self.risk_flags.append(f"❌ RugCheck score: {score}/1000 (Risky)")
 
-            # Check token authorities
-            if rugcheck_data.get("token"):
-                token = rugcheck_data["token"]
+            # Check token authorities - try nested 'token' object first, then root level
+            token_data = rugcheck_data.get("token")
 
-                # Mint authority
-                mint_auth = token.get("mintAuthority")
-                result["mint_authority"] = "DISABLED" if mint_auth is None else "ENABLED"
-                if mint_auth:
-                    self.risk_flags.append("❌ Mint authority ENABLED - New tokens can be minted")
-                else:
-                    self.info.append("✅ Mint authority disabled - Fixed supply")
+            # Mint authority - check both nested and root level
+            mint_auth = None
+            if token_data and isinstance(token_data, dict):
+                mint_auth = token_data.get("mintAuthority")
+            if mint_auth is None and "mintAuthority" in rugcheck_data:
+                mint_auth = rugcheck_data.get("mintAuthority")
 
-                # Freeze authority
-                freeze_auth = token.get("freezeAuthority")
-                result["freeze_authority"] = "DISABLED" if freeze_auth is None else "ENABLED"
-                if freeze_auth:
-                    self.risk_flags.append("❌ Freeze authority ENABLED - Your tokens can be frozen")
-                else:
-                    self.info.append("✅ Freeze authority disabled")
+            result["mint_authority"] = "DISABLED" if mint_auth is None else "ENABLED"
+            if mint_auth:
+                self.risk_flags.append("❌ Mint authority ENABLED - New tokens can be minted")
+            else:
+                self.info.append("✅ Mint authority disabled - Fixed supply")
+
+            # Freeze authority - check both nested and root level
+            freeze_auth = None
+            if token_data and isinstance(token_data, dict):
+                freeze_auth = token_data.get("freezeAuthority")
+            if freeze_auth is None and "freezeAuthority" in rugcheck_data:
+                freeze_auth = rugcheck_data.get("freezeAuthority")
+
+            result["freeze_authority"] = "DISABLED" if freeze_auth is None else "ENABLED"
+            if freeze_auth:
+                self.risk_flags.append("❌ Freeze authority ENABLED - Your tokens can be frozen")
+            else:
+                self.info.append("✅ Freeze authority disabled")
 
             # Check risks from RugCheck
-            if rugcheck_data.get("risks"):
-                for risk in rugcheck_data["risks"]:
+            risks = rugcheck_data.get("risks")
+            if risks is not None and isinstance(risks, list):
+                for risk in risks:
                     risk_name = risk.get("name", "Unknown risk")
                     risk_level = risk.get("level", "unknown")
                     risk_desc = risk.get("description", "")
@@ -458,7 +471,7 @@ class SolanaRugPullDetector:
 
         if rugcheck_data:
             # Check for honeypot indicators in RugCheck risks
-            risks = rugcheck_data.get("risks", [])
+            risks = rugcheck_data.get("risks") or []
             honeypot_risks = [r for r in risks if "honeypot" in r.get("name", "").lower() or
                             "sell" in r.get("description", "").lower() or
                             "transfer" in r.get("name", "").lower()]
@@ -485,13 +498,15 @@ class SolanaRugPullDetector:
                     self.info.append(f"✅ Low transfer fee: {fee}%")
 
             # Check if markets exist (can trade)
-            if rugcheck_data.get("markets"):
-                markets = rugcheck_data["markets"]
+            markets = rugcheck_data.get("markets")
+            if markets is not None and isinstance(markets, list):
                 if markets:
                     result["can_sell"] = "YES"
                     self.info.append(f"✅ {len(markets)} active market(s) detected")
                 else:
                     result["can_sell"] = "UNKNOWN"
+            else:
+                result["can_sell"] = "UNKNOWN"
 
             result["checks_performed"] = [
                 "RugCheck risk analysis",
